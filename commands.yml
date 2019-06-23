@@ -1,0 +1,4 @@
+helm install --dry-run --dbug ./mychart  # dry run a current chart. Shows compiled values
+helm lint ./mychart  # syntax check a chart
+helm package ./mychart  # pack it up for sharing 
+helm install --name example3 mychart-0.1.0.tgz --set service.type=NodePort  ### install from package 

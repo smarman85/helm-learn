@@ -1,0 +1,85 @@
+https://docs.bitnami.com/kubernetes/how-to/create-your-first-helm-chart/
+
+Helm Chart:
+  - encap. each tear of the application
+  - provides a mech. for config. at deployment time
+  - define metadata and documentation useful when sharing a package
+  - good for:
+    - find/use popular software packaged as K8s charts
+    - share your own applications as k8s charts
+    - create reproducible builds of your k8s applications
+    - Intelligently manage your k8s object def.
+    - Manage releases of Helm packages
+
+Getting started:
+  - 'helm create' best way to get started to generate a scaffold to build on
+  - 'helm create mychart'
+    mychart
+    |-- Chart.yaml
+    |-- charts
+    |-- templates
+    |   |-- NOTES.txt
+    |   |-- _helpers.tpl
+    |   |-- deployment.yaml
+    |   |-- ingress.yaml
+    |   `-- service.yaml
+    `-- values.yaml
+
+  - templates:
+    - most important piece
+    - where helm finds YAML definitions for your services, deployments and
+      other k8s objects
+    - will end up with a chart that can be deployed using 'helm install'
+    - note: heml runs each file through go template rendering engine. 
+    - adds a number of utility functions for writing charts. See template/service.yaml
+      will see a basic serivce def that will look a lot like a valid servie
+      dry-run of helm install and enable debug to inspect the generated defs.
+      'helm install --dry-run --debug ./mychart'
+
+  - values:
+    - the template in service.yaml makes use of the helm-specific objects .Chart and .Values
+    - .Chart provides metadata about the chart to your definitions (name or version)
+    - .Values is a key element of helm charts, it's used to expose config that can be set at
+      the time of deployment. Defaults live in the values.yaml file
+    - !! Command line args overwrite defaults
+    - template used to greatly reduce boilerplate and simplify definitions
+    - more advanced user can specify a YAML file containing overrides with the --values
+
+  - Helpers and other functions:
+    - service.yaml template makes use of partials defined in _helpers.tpl as well as 
+      functions like 'replace'
+    - refer to helm docs for deeper walkthrough of the templating language 
+      (functions, partials, and flow control can be used)
+
+  - Documentation:
+    - templates/NOTES.txt file
+    - plaintext file that gets printed out after the chart is sucessfully deployed.
+    - useful place to briefly desc. the next steps for using a chart
+    - notes are run through template engine, you can use templating to print out working 
+      commands for obtaining an IP address, or getting a password from a Secret object
+
+  - Metadata:
+    - used to help describe what the app is
+    - define constraints on the minimum req. k8s and/or helm versions and manage version of your chart
+    - lives in the Chart.yaml file
+
+Deploying Your First Chart:
+  - the chart generated is set to run an nginx server exposeed via k8s service
+  - default the chart will create a ClusterIP type service, so NGINX will only be exposed internally in
+    the cluster.
+  - To access internally we will use NodePort type instead.
+  - We can also set the name of the helm release so we can refer back to it.
+    '$ heml install --name example ./mychart --set service.type=NodePort'
+
+Modify Chart to Deploy a Custom Service:
+  - generated charts create a deployment object to run an image provided by default values
+  - all we need to do to run a diffrent service is change the ref. image in values.yaml
+    ex) todo list application
+  - in values.yaml update teh image keys to ref. the todo list image
+
+Packaging it all up to share:
+  - helm package ./mychart
+  - helm will create mychart-0.1.0.tgz package in your working dir. Using name and version from the metadata
+    in Chart.yaml
+  - a user can install from this package instead of local dir by passing the package as the param to helm install
+    '$ helm install --name example3 mychart-0.1.0.tgz --set service.type=NodePort

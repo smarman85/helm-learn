@@ -1,0 +1,145 @@
+Helm:
+  - package manager for k8s to deploy to Redis
+  - simplify discovering and deploying services to a k8s cluster
+  - best way to find, share and use software build for k8s
+  - one or more applications, that together form a release
+  - unlike manifests charts are versioned (allow upgrade and downgrade)
+    http://www.helm.sh/
+
+  - Tiller:
+    - takes charts and creates the release 
+
+  - https://www.katacoda.com/courses/kubernetes/helm-package-manager
+  - Install:
+    curl -LO https://storage.googleapis.com/kubernetes-helm/helm-v2.8.2-linux-amd64.tar.gz
+    tar -xvf helm-v2.8.2-linux-amd64.tar.gz
+    mv linux-amd64/helm /usr/local/bin/
+    - once installed init the local cache to sync the latest availiable packages with the env
+      $ helm init
+      $ helm repo update
+  - Search for a chart:
+    you can now start deploying software
+    find charts you can use the search command
+    $ helm search redis   # search for redis chard
+    $ heml inspect stable/redis     # get more info on stable/redis chart
+
+  - Deploy a package:
+    $ helm install stable/redis 
+    helm launches required pods
+    $ helm ls  # view all installed packges
+    ! errors 'helm could not find  ready tiller pod' it means helm is still deploying. 
+
+  - See Results:
+    - helm deploys all the pods, replication controllers and services
+    - use 'kubectl' to find out what was deployed
+      $ kubectl get all
+    - the pods will be in a pending state while the docker image is downloaded and until a 
+      Persistent Volume is available
+      $ kubectl apply -f pv.yaml
+      $ chmod 777 -R /mnt/data # give redis write access
+    - helm install with friendly name
+      $ helm install --name my-release stable/redis
+
+
+https://helm.sh/docs/using_helm/#quickstart
+Helm install:
+  - k8s cluster
+  - security configs
+  - installing/configuring helm/tiller
+
+  - Security context:
+    - not a concern in minikube or private cluster
+    - !PRODUCTION clusters need extra steps to secure
+      https://helm.sh/docs/using_helm/#securing-your-helm-installation
+
+  - install helm...
+  - init helm and install tiller
+    $ helm init --history-max 200
+      - '--history-max' on helm init is recommended as configmaps and other objects in helm can grow
+        large in number if not purged by max limit
+      - by default tiller is installed without authentication enabled.
+    $ helm search mysql
+    $ helm install stable/mysql
+    $ helm ls
+    $ helm status <service-name>
+  - Customize the chart before installing:
+    Installing a customized chart
+    $ helm inspect values stable/mysql
+    - overwrite settings in YAML formatted file, and then pass that file during install
+      $ cat << EOF > config.yaml
+    mysqlUser: user0
+    mysqlDatabse: user0db
+    EOF
+    $ helm install -f config.yaml stable/mariadb
+  - two ways to pass configs during install:
+    --values (or -f) specify YAML file with overrides. This can be specified multiple times and 
+      rightmost file will take precedence
+    --set (and variants --set-string and --set-file). Specify overrides on the command line
+    ! if both are used, --set values are merged into --values with higher precedence
+  - Values set by '--set' are persisted in a configmap. 
+      can be viewed for a release with '$ helm get values <release-name>'
+  - The Format and Limitations of '--set':
+    - --set takes zero or more name/value pairs.
+    simplest form: --set name=value
+      name: value
+    multiple values: --set a=b,c=d
+      a: b
+      c: d
+    complex values: --set outer.inner=value
+      outer:
+        inner: value
+    lists:  --set name={a,b,c}
+      name:
+        - a
+        - b
+        - c
+    helm 2.5.0:
+      - possible to access list items using an array index syntax 
+          --set servers[0].port=80
+          servers:
+            - port: 80
+      - multiple values can be set:
+          --set servers[0].port=80,servers[0].host=example
+          servers:
+            - ports: 80
+              host: example
+      - special characters:
+        --set name="value1\,value2"
+        name: "value1,value2"
+      - dot sequence:
+        --set nodeSelector."kubernetes\.io/role"=master
+        nodeSelector:
+          kubernetes.io/role:master
+      - deeply nested data structures:
+        difficult to express using --set
+        encouraged to consider the --set usage when designing the format of values.yaml
+        helm will cast certin values specified with --set to integers
+        ex) --set foo=true results cast to int64 value
+          - use --set-string foo=true
+        --set-file key=filepath is another variant of --set
+          - it reads the file and use it's content as a value.
+            an example use case of it is to inject a multi-line text into values without dealing with
+            indentation in YAML. ex) brigade project with 5 lines of javaScript
+        defaultScript: |
+          const { events, Job } = require("brigadier")
+          function run(e, project) {
+            console.log("hello default script")
+          }
+          events.on("run", run)
+        easier with set file
+        --set-file defaultScript=brigade.js
+        with brigade.js
+        cont:
+        const { events, Job } = require("brigadier")
+        function run(e, project) {
+          console.log("hello default script")
+        }
+        events.on("run", run)
+        # this way you can use Your IDE for features
+  - more install methods:
+    helm install can install from serveral sources
+    * A cahrt repo
+    * A local chart archive 'helm install foo-0.1.1.tgz'
+    * An unpacked chard dir 'helm install path/to/foo'
+    * A full URL 'helm install https://example.com/charts/foo-1.2.3.tgz'
+
